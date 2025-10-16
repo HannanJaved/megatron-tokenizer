@@ -1,14 +1,15 @@
 #!/bin/bash
 
-#SBATCH --job-name=test       
-#SBATCH --output=logs/slurm-%j.out       
-#SBATCH --error=logs/slurm-%j.err        
+#SBATCH --job-name=AugGSM8K
+#SBATCH --output=logs/tokenize/%x.out
+#SBATCH --error=logs/tokenize/%x.err
 #SBATCH --nodes=1                    # 1 node
 #SBATCH --ntasks-per-node=1         
-#SBATCH --time=02:30:00               # time limit: 1 hour
+#SBATCH --time=06:30:00               # time limit: 1 hour
 #SBATCH --account=laionize           # project account
 #SBATCH --partition=batch           # partition name
 #SBATCH --cpus-per-task=6          
+#SBATCH --mem=32G          # Request 32GB of memory
 
 # module load Python
 # module load PyTorch
@@ -41,7 +42,7 @@ MEGATRON_PATH="Megatron-LM"
 export PYTHONPATH="$(pwd)/Megatron-LM"
 echo "PYTHONPATH set to: $PYTHONPATH"
 
-INPUT="/p/data1/datasets/mmlaion/language/raw/AugGSM8K/"
+INPUT="/p/data1/datasets/mmlaion/language/raw/AugGSM8K"
 OUTPUT_PREFIX="/p/data1/datasets/mmlaion/mahadik1/tokenized_cosmo2/AugGSM8K/"
 TOKENIZER_TYPE="HuggingFaceTokenizer"
 # Use the local cached tokenizer path instead of model name to avoid HF hub lookups
@@ -60,6 +61,7 @@ CMD="python $SCRIPT \
     --tokenizer-model $TOKENIZER_MODEL \
     --workers $SLURM_CPUS_PER_TASK \
     --cpus-per-ray-worker $CPUS_PER_WORKER \
+    --json-keys response \
     --append-eod"
 
 # --json-keys blob_id \

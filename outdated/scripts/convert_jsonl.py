@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import argparse
+import gc
 from tqdm import tqdm
 
 def convert_batch_parquet_to_jsonl(input_dir, output_dir, batch_size=10, start_batch=0):
@@ -49,6 +50,10 @@ def convert_batch_parquet_to_jsonl(input_dir, output_dir, batch_size=10, start_b
         try:
             df = pd.read_parquet(input_parquet_path)
             df.to_json(output_jsonl_path, orient='records', lines=True)
+            
+            # Explicitly delete the dataframe and force garbage collection
+            del df
+            gc.collect()
                     
         except Exception as e:
             tqdm.write(f"Failed to convert {input_parquet_path}: {e}")
