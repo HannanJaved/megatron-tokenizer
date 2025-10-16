@@ -1,15 +1,16 @@
 import pandas as pd
 import os
+import argparse
 from tqdm import tqdm
 
-def convert_directory_parquet_to_jsonl(input_dir, output_dir):
+def convert_batch_parquet_to_jsonl(input_dir, output_dir, batch_size=10, start_batch=0):
     """
-    Converts all Parquet files in an input directory (and its subdirectories)
-    to JSONL files
+    Converts Parquet files in batches to avoid memory issues.
+    Processes only 'batch_size' files at a time.
     """
     if not os.path.exists(input_dir):
         print(f"Error: Input directory not found at '{input_dir}'")
-        return
+        return False
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         print(f"Created root output directory: {output_dir}")
@@ -23,11 +24,17 @@ def convert_directory_parquet_to_jsonl(input_dir, output_dir):
 
     if not all_parquet_files:
         print(f"No Parquet files found in '{input_dir}' or its subdirectories.")
-        return
+        return False
 
-    print(f"Starting conversion of {len(all_parquet_files)} Parquet files from '{input_dir}' (including subdirectories) to '{output_dir}'...")
+    total_files = len(all_parquet_files)
+    batch_start_idx = start_batch * batch_size
+    batch_end_idx = min(batch_start_idx + batch_size, total_files)
 
-    for input_parquet_path in tqdm(all_parquet_files, desc="Converting files"):
+    print(f"Processing batch {start_batch} (files {batch_start_idx} to {batch_end_idx-1} of {total_files})...")
+    
+    batch_files = all_parquet_files[batch_start_idx:batch_end_idx]
+    
+    for input_parquet_path in tqdm(batch_files, desc="Converting batch"):
         relative_path = os.path.relpath(input_parquet_path, input_dir)
         
         output_jsonl_dir = os.path.join(output_dir, os.path.dirname(relative_path))
@@ -46,10 +53,50 @@ def convert_directory_parquet_to_jsonl(input_dir, output_dir):
         except Exception as e:
             tqdm.write(f"Failed to convert {input_parquet_path}: {e}")
 
-    print("All directory conversion tasks complete!")
+    # Return True if there are more batches to process
+    if batch_end_idx < total_files:
+        print(f"Batch {start_batch} complete. {total_files - batch_end_idx} files remaining.")
+        return True
+    else:
+        print("All files converted successfully!")
+        return False
 
 if __name__ == "__main__":
-    input_directory = "/p/data1/datasets/mmlaion/language/raw/HuggingFaceTB-finemath/infiwebmath-4plus"
-    output_directory = "/p/project/projectnucleus/juwelsbooster/infiwebmath-4plus/jsonl" 
-
-    convert_directory_parquet_to_jsonl(input_directory, output_directory)
+    parser = argparse.ArgumentParser(
+        description="Convert Parquet files to JSONL format in batches"
+    )
+    parser.add_argument(
+        "--input",
+        required=True,
+        help="Input directory containing Parquet files"
+    )
+    parser.add_argument(
+        "--output",
+        required=True,
+        help="Output directory for JSONL files"
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=10,
+        help="Number of files to process per batch (default: 10)"
+    )
+    parser.add_argument(
+        "--batch",
+        type=int,
+        default=0,
+        help="Batch number to start from (default: 0)"
+    )
+    
+    args = parser.parse_args()
+    
+    has_more = convert_batch_parquet_to_jsonl(
+        args.input, 
+        args.output, 
+        batch_size=args.batch_size,
+        start_batch=args.batch
+    )
+    
+    if has_more:
+        print(f"\nTo process the next batch, run:")
+        print(f"python {os.path.basename(__file__)} --input {args.input} --output {args.output} --batch-size {args.batch_size} --batch {args.batch + 1}")
