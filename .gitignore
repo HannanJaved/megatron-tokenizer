@@ -1,6 +1,8 @@
 slurm-*
 tvenv2/
 outdated/logs/
+outdated/scripts/tmp_submit/
+outdated/scripts/logs/
 tokenized_datasets/
 .cache/
 .python/
