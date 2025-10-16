@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=Batch2
-#SBATCH --output=logs/convert_to_jsonl/FineWeb/%x.out
-#SBATCH --error=logs/convert_to_jsonl/FineWeb/%x.err
+#SBATCH --job-name=Batch0
+#SBATCH --output=logs/convert_to_jsonl/DCLM/%x.out
+#SBATCH --error=logs/convert_to_jsonl/DCLM/%x.err
 #SBATCH --nodes=1
 #SBATCH --time=02:00:00
 #SBATCH --account=laionize
@@ -18,7 +18,7 @@ source /p/project/projectnucleus/mahadik1/.python/.tvenv/bin/activate
 
 # python convert_to_json.py
 python /p/project/projectnucleus/mahadik1/outdated/scripts/convert_jsonl.py \
---input /p/data1/datasets/mmlaion/language/raw/HuggingFaceTB-smollm-corpus/fineweb-edu-dedup \
---output /p/data1/datasets/mmlaion/language/raw/HuggingFaceTB-smollm-corpus/fineweb-edu-dedup/jsonl_data \
---batch-size 10 \
---batch 2
+--input /p/data1/datasets/mmlaion/language/raw/HuggingFaceTB-dclm-edu/data \
+--output /p/data1/datasets/mmlaion/language/raw/HuggingFaceTB-dclm-edu/jsonl_data/ \
+--batch-size 5 \
+--batch 0
