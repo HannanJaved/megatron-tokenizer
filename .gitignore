@@ -3,3 +3,4 @@ tvenv2/
 outdated/logs/
 tokenized_datasets/
 .cache/
+.python/
