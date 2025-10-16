@@ -3,12 +3,12 @@ from transformers import AutoTokenizer
 import os
 
 # Set a custom cache directory
-cache_dir = "/p/project/projectnucleus/mahadik1/.cache"
+cache_dir = "/p/project/projectnucleus/mahadik1/.cache/huggingface"
 os.environ["HF_HOME"] = cache_dir
 
 # Download the tokenizer
 tokenizer = AutoTokenizer.from_pretrained(
-    "EleutherAI/gpt-neox-20b",
+    "HuggingFaceTB/cosmo2-tokenizer",
     cache_dir=cache_dir
 )
 

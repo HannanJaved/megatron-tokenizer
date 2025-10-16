@@ -1,16 +1,16 @@
 #!/bin/bash
 
-#SBATCH --job-name=FM3Plus       
-#SBATCH --output=slurm-%j.out       
-#SBATCH --error=slurm-%j.err        
+#SBATCH --job-name=test       
+#SBATCH --output=logs/slurm-%j.out       
+#SBATCH --error=logs/slurm-%j.err        
 #SBATCH --nodes=1                    # 1 node
 #SBATCH --ntasks-per-node=1         
-#SBATCH --time=20:00:00               # time limit: 1 hour
+#SBATCH --time=02:30:00               # time limit: 1 hour
 #SBATCH --account=laionize           # project account
 #SBATCH --partition=batch           # partition name
 #SBATCH --cpus-per-task=6          
 
-module load Python
+# module load Python
 # module load PyTorch
 module load CUDA
 module load GCC
@@ -18,7 +18,7 @@ module load PyYAML
 
 
 # Activate the virtual environment
-source /p/project/projectnucleus/mahadik1/tvenv2/bin/activate
+# source /p/project/projectnucleus/mahadik1/.python/.tvenv/bin/activate
 # VENV_PYTHON="/p/project/projectnucleus/mahadik1/tvenv2/bin/python"
 
 # # Check if the virtual environment Python exists
@@ -38,16 +38,20 @@ MEGATRON_PATH="Megatron-LM"
 # cd "$MEGATRON_PATH" || { echo "Error: Could not change to $MEGATRON_PATH. Exiting."; exit 1; }
 
 # Export PYTHONPATH to include Megatron-LM only
-# export PYTHONPATH="$(pwd):$PYTHONPATH"
-# echo "PYTHONPATH set to: $PYTHONPATH"
+export PYTHONPATH="$(pwd)/Megatron-LM"
+echo "PYTHONPATH set to: $PYTHONPATH"
 
 INPUT="/p/data1/datasets/mmlaion/language/raw/AugGSM8K/"
 OUTPUT_PREFIX="/p/data1/datasets/mmlaion/mahadik1/tokenized_cosmo2/AugGSM8K/"
 TOKENIZER_TYPE="HuggingFaceTokenizer"
-TOKENIZER_MODEL="HuggingFaceTB/cosmo2-tokenizer"
+# Use the local cached tokenizer path instead of model name to avoid HF hub lookups
+TOKENIZER_MODEL="/p/project/projectnucleus/mahadik1/.cache/huggingface/models--HuggingFaceTB--cosmo2-tokenizer/snapshots/4ce2318a3628e77279c939ed6a9f3f03034402de"
 CPUS_PER_WORKER=6
 SCRIPT="/p/project/projectnucleus/mahadik1/Megatron-LM/preprocess_data_parallel.py"
-HF_HUB_OFFLINE=1 
+export HF_HUB_OFFLINE=1
+
+# export PYTHONPATH=""
+source /p/project/projectnucleus/mahadik1/.python/.tvenv/bin/activate
 
 CMD="python $SCRIPT \
     --input $INPUT \
