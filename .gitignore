@@ -4,3 +4,4 @@ outdated/logs/
 tokenized_datasets/
 .cache/
 .python/
+logs/
