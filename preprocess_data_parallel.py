@@ -306,8 +306,8 @@ def is_file_tokenized(output_prefix, json_keys):
     """Check if a file has already been tokenized by looking for .bin and .idx files."""
     level = "document"  # Assuming default is document level
     for key in json_keys:
-        bin_file = "{}_{}_{}.bin".format(output_prefix, key, level)
-        idx_file = "{}_{}_{}.idx".format(output_prefix, key, level)
+        bin_file = "{}_{}{}{}.bin".format(output_prefix, key, "_" if key else "", level)
+        idx_file = "{}_{}{}{}.idx".format(output_prefix, key, "_" if key else "", level)
         if not (os.path.isfile(bin_file) and os.path.isfile(idx_file)):
             return False
     return True

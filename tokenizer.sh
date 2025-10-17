@@ -61,7 +61,7 @@ CMD="python $SCRIPT \
     --tokenizer-model $TOKENIZER_MODEL \
     --workers $SLURM_CPUS_PER_TASK \
     --cpus-per-ray-worker $CPUS_PER_WORKER \
-    --json-keys response \
+    --json-keys text \
     --append-eod"
 
 # --json-keys blob_id \
