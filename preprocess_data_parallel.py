@@ -306,9 +306,13 @@ def is_file_tokenized(output_prefix, json_keys):
     """Check if a file has already been tokenized by looking for .bin and .idx files."""
     level = "document"  # Assuming default is document level
     for key in json_keys:
+        # File format: output_prefix_key_level.bin
+        # Example: /path/001_00005.jsonl_text_document.bin
         bin_file = "{}_{}{}{}.bin".format(output_prefix, key, "_" if key else "", level)
         idx_file = "{}_{}{}{}.idx".format(output_prefix, key, "_" if key else "", level)
-        if not (os.path.isfile(bin_file) and os.path.isfile(idx_file)):
+        bin_exists = os.path.isfile(bin_file)
+        idx_exists = os.path.isfile(idx_file)
+        if not (bin_exists and idx_exists):
             return False
     return True
 
@@ -335,21 +339,30 @@ def filter_files_to_process(all_files, output_dir, json_keys, keep_last_n=10):
     files_to_process = []
     
     for file in all_files:
-        base_name = os.path.splitext(os.path.basename(file))[0]
-        output_prefix = os.path.join(output_dir, base_name)
+        basename_with_ext = os.path.basename(file)  # e.g., "001_00005.jsonl"
+        output_prefix = os.path.join(output_dir, basename_with_ext)  # Keep the .jsonl extension
         
         # Always process recently modified files
         if file in recent_files_set:
             files_to_process.append(file)
+            base_name = os.path.splitext(basename_with_ext)[0]
             logging.info(f"File {base_name} (recently modified) will be reprocessed")
             continue
         
         # For other files, check if they've been tokenized
         if not is_file_tokenized(output_prefix, json_keys):
             files_to_process.append(file)
+            base_name = os.path.splitext(basename_with_ext)[0]
             logging.info(f"File {base_name} needs tokenization")
         else:
+            base_name = os.path.splitext(basename_with_ext)[0]
             logging.info(f"Skipping already tokenized file: {base_name}")
+            for key in json_keys:
+                level = "document"
+                bin_file = "{}_{}{}{}.bin".format(output_prefix, key, "_" if key else "", level)
+                idx_file = "{}_{}{}{}.idx".format(output_prefix, key, "_" if key else "", level)
+                logging.info(f"  Found: {bin_file}")
+                logging.info(f"  Found: {idx_file}")
     
     return files_to_process
 
@@ -373,8 +386,10 @@ if __name__ == "__main__":
         f"{args.input}/*.jsonl"
     )  # TODO: Add support for other formats
     logging.info(f"Found {len(all_jsonl_files)} files total")
+    logging.info(f"Checking for tokenized files in: {temp_output_dir}")
     
     # Filter out already tokenized files (except last 10)
+    # Check in temp_output_dir since that's where individual file outputs go
     files_to_process = filter_files_to_process(all_jsonl_files, temp_output_dir, args.json_keys, keep_last_n=10)
     logging.info(f"Processing {len(files_to_process)} files (skipped {len(all_jsonl_files) - len(files_to_process)} already tokenized files)")
 
