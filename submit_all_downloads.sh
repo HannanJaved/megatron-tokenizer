@@ -27,8 +27,13 @@ for lang in "${!shards[@]}"; do
   for ((i=0; i<num_shards; i++)); do
     tmp_script="download_ds_${lang}_${i}.sh"
     # Replace job-name with language in a temp script
-    sed "s/^#SBATCH --job-name=.*/#SBATCH --job-name=${lang}/" download_ds.sh > "$tmp_script"
-    sbatch "$tmp_script" --language "$lang" --shard "$i"
+    # Also replace the language and shard arguments in the python command
+    sed "s/^#SBATCH --job-name=.*/#SBATCH --job-name=${lang}/" download_ds.sh | \
+    sed "s/--language Python/--language ${lang}/" | \
+    sed "s/--shard 0/--shard ${i}/" > "$tmp_script"
+    sbatch "$tmp_script"
     rm "$tmp_script"
+    # Add small delay to reduce cache conflicts
+    sleep 2
   done
 done

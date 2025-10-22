@@ -12,6 +12,10 @@
 
 source /p/project/projectnucleus/mahadik1/tvenv2/bin/activate
 
+# Use job-specific cache directory to avoid race conditions
+export HF_HOME="/p/project/projectnucleus/mahadik1/.cache/hf_${SLURM_JOB_ID}"
+mkdir -p "$HF_HOME"
+
 python -u download_stackedu.py \
     --language Python \
     --shard 0 \
