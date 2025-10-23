@@ -7,3 +7,4 @@ tokenized_datasets/
 .cache/
 .python/
 logs/
+__pycache__/
