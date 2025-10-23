@@ -1,8 +1,10 @@
 import gzip
-import requests
-from datasets import load_dataset, Dataset
-import argparse
 import os
+from typing import Tuple
+
+import requests
+from datasets import load_dataset, load_dataset_builder
+import argparse
 
 def download_contents(example):
     blob_id = example["blob_id"]
@@ -19,27 +21,57 @@ def download_contents(example):
         print(f"Error downloading {blob_id}: {str(e)}")
         return {"text": "", "download_success": False}
 
-def process_sub_shard(language, shard_idx, sub_shard_idx, total_sub_shards, output_dir, num_proc=16):
+def _compute_bounds(total_examples: int, total_pieces: int, piece_idx: int) -> Tuple[int, int]:
+    """Return start and end indices (exclusive) for a piece."""
+
+    start_idx = (piece_idx * total_examples) // total_pieces
+    end_idx = ((piece_idx + 1) * total_examples) // total_pieces
+    return start_idx, end_idx
+
+
+def process_sub_shard(language, shard_idx, sub_shard_idx, total_sub_shards, output_dir, num_proc=16, num_shards=11):
     """Process a sub-shard of a parquet file by further splitting it"""
-    
+
     print(f"Processing {language} shard {shard_idx}, sub-shard {sub_shard_idx}/{total_sub_shards}...")
-    
-    # Calculate the percentage range for this sub-shard
-    # Each original shard is 1%, we're splitting that further
-    start_pct = shard_idx + (sub_shard_idx / total_sub_shards)
-    end_pct = shard_idx + ((sub_shard_idx + 1) / total_sub_shards)
-    
-    print(f"Loading data from {start_pct:.2f}% to {end_pct:.2f}%...")
-    
-    # Load specific sub-shard
-    ds = load_dataset(
-        "HuggingFaceTB/stack-edu", 
-        language,
-        split=f"train[{start_pct}%:{end_pct}%]",
-        num_proc=num_proc
+
+    builder = load_dataset_builder("HuggingFaceTB/stack-edu", language)
+    total_examples = builder.info.splits["train"].num_examples
+    if not total_examples:
+        raise ValueError(f"Could not determine dataset size for {language}")
+
+    total_pieces = num_shards * total_sub_shards
+    piece_idx = shard_idx * total_sub_shards + sub_shard_idx
+
+    if piece_idx >= total_pieces:
+        raise ValueError(
+            f"Computed piece index {piece_idx} is out of range for {total_pieces} total pieces"
+        )
+
+    start_idx, end_idx = _compute_bounds(total_examples, total_pieces, piece_idx)
+
+    if end_idx <= start_idx:
+        print(
+            f"Skipping shard {shard_idx} sub-shard {sub_shard_idx}:"
+            f" empty range ({start_idx}, {end_idx}) out of {total_examples} examples"
+        )
+        return 0, 0
+
+    print(
+        "Loading data rows "
+        f"{start_idx:,} to {end_idx:,} (piece {piece_idx + 1}/{total_pieces}, "
+        f"≈{end_idx - start_idx:,} examples)..."
     )
-    
-    print(f"Loaded {len(ds)} examples from shard {shard_idx}, sub-shard {sub_shard_idx}")
+
+    ds = load_dataset(
+        "HuggingFaceTB/stack-edu",
+        language,
+        split=f"train[{start_idx}:{end_idx}]",
+        num_proc=num_proc,
+    )
+
+    print(
+        f"Loaded {len(ds)} examples from shard {shard_idx}, sub-shard {sub_shard_idx}"
+    )
     
     # Download content
     print("Downloading content...")
@@ -62,6 +94,7 @@ def main():
     parser.add_argument("--shard", type=int, required=True, help="Original shard index to process (0-10 for Java)")
     parser.add_argument("--subshard", type=int, required=True, help="Sub-shard index within the shard (0 or 1 for 2x split)")
     parser.add_argument("--total-subshards", type=int, default=2, help="Total number of sub-shards per original shard")
+    parser.add_argument("--num-shards", type=int, default=11, help="Total number of original shards for the language")
     parser.add_argument("--output_dir", type=str, default="/p/data1/datasets/mmlaion/language/raw/stack-edu/Code/", help="Output directory")
     parser.add_argument("--num_proc", type=int, default=16, help="Number of processes for parallel downloading")
     
@@ -69,6 +102,7 @@ def main():
     
     # Create output directory
     os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs(os.path.join(args.output_dir, args.language), exist_ok=True)
     
     # Process the sub-shard
     success_count, total_count = process_sub_shard(
@@ -77,12 +111,16 @@ def main():
         args.subshard,
         args.total_subshards,
         args.output_dir,
-        args.num_proc
+        args.num_proc,
+        args.num_shards,
     )
     
     print(f"\n=== Summary ===")
     print(f"Language: {args.language}")
-    print(f"Shard: {args.shard}, Sub-shard: {args.subshard}/{args.total_subshards}")
+    print(
+        f"Shard: {args.shard}, Sub-shard: {args.subshard}/{args.total_subshards}, "
+        f"Total pieces: {args.num_shards * args.total_subshards}"
+    )
     print(f"Success rate: {success_count}/{total_count} ({100*success_count/total_count:.1f}%)")
 
 if __name__ == "__main__":

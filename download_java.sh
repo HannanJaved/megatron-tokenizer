@@ -12,14 +12,16 @@
 
 source /p/project/projectnucleus/mahadik1/tvenv2/bin/activate
 
-# Use job-specific cache directory to avoid race conditions
-export HF_HOME="/p/project/projectnucleus/mahadik1/.cache/hf_${SLURM_JOB_ID}"
+# Use shared cache directory on data partition with more space
+# The HuggingFace datasets library handles concurrent access safely
+export HF_HOME="/p/project/projectnucleus/mahadik1/.cache/huggingface"
 mkdir -p "$HF_HOME"
 
 python -u download_java.py \
     --language Java \
     --shard 0 \
     --subshard 0 \
-    --total-subshards 2 \
+    --total-subshards 5 \
+    --num-shards 11 \
     --output_dir /p/data1/datasets/mmlaion/language/raw/stack-edu/Code/ \
     --num_proc 16
