@@ -1,15 +1,15 @@
 #!/bin/bash
 
-#SBATCH --job-name=DCLM-2
-#SBATCH --output=logs/tokenize/%x.out
-#SBATCH --error=logs/tokenize/%x.err
-#SBATCH --nodes=1                    # 1 node
+#SBATCH --job-name=Go
+#SBATCH --output=logs/tokenize/Stack-Edu/%x.out
+#SBATCH --error=logs/tokenize/Stack-Edu/%x.err
+#SBATCH --nodes=1          
 #SBATCH --ntasks-per-node=1         
-#SBATCH --time=23:30:00               # time limit: 1 hour
-#SBATCH --account=laionize           # project account
-#SBATCH --partition=batch           # partition name
+#SBATCH --time=1-00:00:00               
+#SBATCH --account=laionize           
+#SBATCH --partition=batch           
 #SBATCH --cpus-per-task=6          
-#SBATCH --mem=32G          # Request 32GB of memory
+#SBATCH --mem=32G          
 
 # module load Python
 # module load PyTorch
@@ -42,8 +42,8 @@ MEGATRON_PATH="Megatron-LM"
 export PYTHONPATH="$(pwd)/Megatron-LM"
 echo "PYTHONPATH set to: $PYTHONPATH"
 
-INPUT="/p/data1/datasets/mmlaion/language/raw/HuggingFaceTB-dclm-edu/jsonl_data"
-OUTPUT_PREFIX="/p/data1/datasets/mmlaion/mahadik1/tokenized_cosmo2/DCLM-Edu"
+INPUT="/p/data1/datasets/mmlaion/language/raw/stack-edu/Code/jsonl_data/Go/"
+OUTPUT_PREFIX="/p/data1/datasets/mmlaion/mahadik1/tokenized_cosmo2/Stack-Edu/Go/"
 TOKENIZER_TYPE="HuggingFaceTokenizer"
 # Use the local cached tokenizer path instead of model name to avoid HF hub lookups
 TOKENIZER_MODEL="/p/project/projectnucleus/mahadik1/.cache/huggingface/models--HuggingFaceTB--cosmo2-tokenizer/snapshots/4ce2318a3628e77279c939ed6a9f3f03034402de"
