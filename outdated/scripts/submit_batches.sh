@@ -16,6 +16,7 @@ NO_SUBMIT=0
 START=0
 END=-1
 BATCH_SIZE_OVERRIDE=""
+INPUT_FORMAT_OVERRIDE=""
 
 usage(){
   cat <<EOF
@@ -40,6 +41,8 @@ while [[ ${#} -gt 0 ]]; do
       BATCH_SIZE_OVERRIDE="$2"; shift 2 ;;
     --end)
       END="$2"; shift 2 ;;
+    --input-format)
+      INPUT_FORMAT_OVERRIDE="$2"; shift 2 ;;
     --help)
       usage; exit 0 ;;
     *)
@@ -48,12 +51,35 @@ while [[ ${#} -gt 0 ]]; do
 done
 
 
-DEFAULT_TOTAL=47
+DEFAULT_TOTAL=50
 
 # Try to infer input dir and batch-size from the base convert script first
 INPUT_DIR="$(awk '{ for(i=1;i<NF;i++) if($i=="--input") print $(i+1) }' "$BASE_SCRIPT" | head -n1)"
 
 BATCH_SIZE="$(awk '{ for(i=1;i<NF;i++) if($i=="--batch-size") print $(i+1) }' "$BASE_SCRIPT" | head -n1)"
+
+INPUT_FORMAT="$(awk '{ for(i=1;i<NF;i++) if($i=="--input-format") print $(i+1) }' "$BASE_SCRIPT" | head -n1)"
+if [[ -z "$INPUT_FORMAT" ]]; then
+  INPUT_FORMAT="parquet"
+fi
+
+if [[ -n "$INPUT_FORMAT_OVERRIDE" ]]; then
+  INPUT_FORMAT="$INPUT_FORMAT_OVERRIDE"
+fi
+
+case "$INPUT_FORMAT" in
+  parquet)
+  FILE_PATTERN='*.parquet'
+    ;;
+  arrow)
+  FILE_PATTERN='*.arrow'
+    ;;
+  *)
+    echo "Warning: unsupported input format '$INPUT_FORMAT' inferred from $BASE_SCRIPT; defaulting to parquet"
+    INPUT_FORMAT="parquet"
+    FILE_PATTERN='*.parquet'
+    ;;
+esac
 
 if [[ -n "$BATCH_SIZE_OVERRIDE" ]]; then
   BATCH_SIZE="$BATCH_SIZE_OVERRIDE"
@@ -68,13 +94,13 @@ fi
 TOTAL_BATCHES=$DEFAULT_TOTAL
 
 if [[ -n "$INPUT_DIR" && -d "$INPUT_DIR" ]]; then
-  total_files=$(find "$INPUT_DIR" -type f -name '*.parquet' | wc -l | tr -d ' ')
+  total_files=$(find "$INPUT_DIR" -type f -iname "$FILE_PATTERN" | wc -l | tr -d ' ')
   total_files=${total_files:-0}
   if (( total_files > 0 )); then
     TOTAL_BATCHES=$(((total_files + BATCH_SIZE - 1) / BATCH_SIZE))
-    echo "Inferred $total_files parquet files under $INPUT_DIR; batch-size=$BATCH_SIZE -> TOTAL_BATCHES=$TOTAL_BATCHES"
+    echo "Inferred $total_files ${INPUT_FORMAT} files under $INPUT_DIR; batch-size=$BATCH_SIZE -> TOTAL_BATCHES=$TOTAL_BATCHES"
   else
-    echo "Warning: no parquet files found under $INPUT_DIR; using DEFAULT_TOTAL=$DEFAULT_TOTAL"
+    echo "Warning: no ${INPUT_FORMAT} files found under $INPUT_DIR; using DEFAULT_TOTAL=$DEFAULT_TOTAL"
   fi
 else
   if [[ -n "$INPUT_DIR" ]]; then
@@ -99,19 +125,21 @@ fi
 
 echo "Preparing to create batch scripts for range $START..$END (no-submit=$NO_SUBMIT). TOTAL_BATCHES=$TOTAL_BATCHES"
 
-mkdir -p "$SCRIPT_DIR/logs/convert_to_jsonl/DCLM"
+mkdir -p "$SCRIPT_DIR/logs/convert_to_jsonl/Stack-Edu"
 
 for i in $(seq $START $END); do
   JOB_NAME="Batch${i}"
-  OUT_FILE="$SCRIPT_DIR/logs/convert_to_jsonl/DCLM/${JOB_NAME}.out"
-  ERR_FILE="$SCRIPT_DIR/logs/convert_to_jsonl/DCLM/${JOB_NAME}.err"
+  OUT_FILE="$SCRIPT_DIR/logs/convert_to_jsonl/Stack-Edu/${JOB_NAME}.out"
+  ERR_FILE="$SCRIPT_DIR/logs/convert_to_jsonl/Stack-Edu/${JOB_NAME}.err"
   TMP_SCRIPT="$WORK_DIR/convert_${i}.sh"
 
   # Create a temporary copy of the base script with replaced batch number and job-name
-  awk -v bn="$i" -v jn="$JOB_NAME" \
+  awk -v bn="$i" -v jn="$JOB_NAME" -v fmt="$INPUT_FORMAT" \
     'BEGIN{batch_set=0;job_set=0} \
      /^#SBATCH --job-name=/{print "#SBATCH --job-name=" jn; job_set=1; next} \
-     {gsub(/--batch [0-9]+/, "--batch " bn); print} ' \
+     {gsub(/--batch[[:space:]][0-9]+/, "--batch " bn); \
+      if (fmt != "") {gsub(/--input-format[[:space:]]+[A-Za-z0-9_.-]+/, "--input-format " fmt)}; \
+      print} ' \
     "$BASE_SCRIPT" > "$TMP_SCRIPT"
 
   # Ensure the tmp script is executable
