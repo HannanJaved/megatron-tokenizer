@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=Go
+#SBATCH --job-name=C
 #SBATCH --output=logs/tokenize/Stack-Edu/%x.out
 #SBATCH --error=logs/tokenize/Stack-Edu/%x.err
 #SBATCH --nodes=1          
@@ -42,17 +42,17 @@ MEGATRON_PATH="Megatron-LM"
 export PYTHONPATH="$(pwd)/Megatron-LM"
 echo "PYTHONPATH set to: $PYTHONPATH"
 
-INPUT="/p/data1/datasets/mmlaion/language/raw/stack-edu/Code/jsonl_data/Go/"
-OUTPUT_PREFIX="/p/data1/datasets/mmlaion/mahadik1/tokenized_cosmo2/Stack-Edu/Go/"
+INPUT="/p/data1/datasets/mmlaion/language/raw/stack-edu/Code/jsonl_data/C/"
+OUTPUT_PREFIX="/p/data1/datasets/mmlaion/mahadik1/tokenized_cosmo2/Stack-Edu/C/"
 TOKENIZER_TYPE="HuggingFaceTokenizer"
 # Use the local cached tokenizer path instead of model name to avoid HF hub lookups
-TOKENIZER_MODEL="/p/project/projectnucleus/mahadik1/.cache/huggingface/models--HuggingFaceTB--cosmo2-tokenizer/snapshots/4ce2318a3628e77279c939ed6a9f3f03034402de"
+TOKENIZER_MODEL="/p/project1/projectnucleus/mahadik1/.cache/huggingface/models--HuggingFaceTB--cosmo2-tokenizer/snapshots/4ce2318a3628e77279c939ed6a9f3f03034402de"
 CPUS_PER_WORKER=6
-SCRIPT="/p/project/projectnucleus/mahadik1/Megatron-LM/preprocess_data_parallel.py"
+SCRIPT="/p/project1/projectnucleus/mahadik1/Megatron-LM/preprocess_data_parallel.py"
 export HF_HUB_OFFLINE=1
 
 # export PYTHONPATH=""
-source /p/project/projectnucleus/mahadik1/.python/.tvenv/bin/activate
+source /p/project1/projectnucleus/mahadik1/.python/.tvenv/bin/activate
 
 CMD="python $SCRIPT \
     --input $INPUT \
