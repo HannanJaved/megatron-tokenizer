@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=c-dclm
+#SBATCH --job-name=dclm
 #SBATCH --output=logs/compress/%x.out
 #SBATCH --error=logs/compress/%x.err
 #SBATCH --nodes=1          
