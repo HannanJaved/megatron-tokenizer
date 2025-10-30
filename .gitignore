@@ -8,3 +8,6 @@ tokenized_datasets/
 .python/
 logs/
 __pycache__/
+scripts/outdated/
+scripts/logs/
+scripts/tmp_submit/
